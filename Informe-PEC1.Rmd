@@ -9,13 +9,15 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-source("codigo_PEC1.R")
+source("codigo-PEC1.R")
 ```
 
 # 2.  Resumen
 
 
 # 3. Objetivos
+
+
 
 # 4. Métodos 
 
@@ -25,7 +27,17 @@ source("codigo_PEC1.R")
 
 - Se empleó la función `PomaCreateObject()` para construir un objeto de clase `SummarizedExperiment`, que contiene la matriz de los datos (valores de los metabolitos) como los metadatos asociados a las muestras (ID del paciente y grupo al que pertenecen). Esta clase, en comparación con `ExpressionSet`, ofrece una estructura más flexible y moderna, ya que utiliza objetos S4, que tienen una mejor compatibilidad con grandes conjuntos de datos. Además, permite trabajar con más de una matriz de datos simultáneamente, siendo una herramienta muy utilizada en análisis ómicos. Una vez creado el objeto, se guarda con el nombre `cachexia_summarized_experiment.Rda`. Vemos que tiene `r dim(object)[1]` filas, que corresponden a los metabolitos y `r dim(object)[2]` columnas, que corresponden a los pacientes.
 
-- Para el **preprocesamiento** de los datos, primero se aplicó una normalización tipo pareto, utilizando la función `PomaNorm(method = "log_pareto")`. Esta realiza una transformaci
+- Para el **preprocesamiento** de los datos, primero se aplicó una normalización tipo pareto, utilizando la función `PomaNorm(method = "log_pareto")`. Esta realiza una transformación logarítmica para reducir la asimetría de las distribuciones y un escalado tipo pareto. Este escalado es ampliamente utilizado en estudios metabolómicos y usa la raíz cuadrada de la desviación estándar como factor de escalado, lo que permite homogeneizar la varianza. En segundo lugar, se realizó una detección de outliers utilizando la función PomaOutliers(), para detectar muestras atípicas y poder eliminarlas del conjunto de datos a analizar. 
+
+- Se aplicó un **Análisis de Componentes Principales (PCA)**, una técnica multivariante no supervisada que reduce la dimensionalidad (variables) de nuestro conjunto de datos preservando gran parte de la varianza. Esta técnica nos ayuda a realizar una primera exploración de los datos y poder detectar y observar si existe agrupamiento entre las muestras. Se utilizó la función `PomaPCA()`, especificando únicamente que centre las variables (`center = TRUE`), pues ya se realizó el escalado anteriormente. Si ordenamos los loadings de la PC1 de mayor a menor, podemos seleccionar los 5 metabolitos que más contribuyen a explicar la varianza global del conjunto de datos. 
+
+- Se ejecutó un **análisis univariante** para identificar los metabolitos con diferencias significativas entre ambos grupos de pacientes. Para ello se utilizó la función `PomaUnivariate()`, especificando el test no paramétrico de **Mann-Whitney**. Pese a haber normalizado los datos no hemos estudiado si siguen una distribución normal o no, por lo que me pareció el test más adecuado. 
+
+- Los resultados se visualizaron mediante un **Volcano plot**, utilizando la función `PomaVolcano()`. Esta gráfica nos permite observar la magnitud del cambio y la significancia estadística, visualizando los metabolitos más signficativos y si encuentran a concentraciones más altas o más bajas en el grupo de caquéxicos. 
+
+- Finalmente se utilizó una técnica supervisada, **sPLS-DA(Sparte Partial Least Squares Discriminant Analysis)**, para intentar maximizar la separación entre grupos utilizando solo los metabolitos con un p valor menor a 0,05. Los resultados se visualizaron mediante el gráfico de factores y se seleccionaron los 5 metabolitos que mejor separan a los pacientes en los grupos control y caquéxicos. 
+
+
 # 5. Resultados
 
 No se comentará nada del código empleado, únicamente las salidas de los gráficos. En el documento `código-PEC1.R`, se puede consultar el código empleado. En primer lugar, se exploraron los datos crudos mediante un boxplot, observando una alta variabilidad entre metabolitos y presencia de posibles outliers. La asimetría de algunas distribuciones nos indica que algunos datos estan en escalas diferentes.
@@ -49,31 +61,28 @@ grafica_outliers
 ```
 
 
-Aunque en el gráfico de outliers ya se intuía cierta separación entre grupos, se aplicó un  **Análisis de Componentes Principales (PCA)** para explorar la estructura global del dataset y observar si las muestras se agrupan dependiendo de si son de pacientes control o caquéxicos. La primera componente principal (PC1) explica el 56% de la variabilidad global del conjunto de datos, lo que indica que existe una fuente dominante de variación. Además, en el plot existe cierta separación entre los grupos, aunque hay un elevado solapamiento entre individuos, por lo que es posible que esta variabilidad esté relacionada con el grupo al que pertenecen los pacientes. 
+Aunque en el gráfico de outliers ya se intuía cierta separación entre grupos, se aplicó un  **Análisis de Componentes Principales (PCA)** para explorar la estructura global del dataset y observar si las muestras se agrupan dependiendo de si son de pacientes control o caquéxicos. La primera componente principal (PC1) explica el 56% de la variabilidad global del conjunto de datos, lo que indica que existe una fuente dominante de variación. Además, en el plot existe cierta separación entre los grupos, aunque hay un elevado solapamiento entre individuos, por lo que es posible que esta variabilidad esté relacionada con el grupo al que pertenecen los pacientes. Vemos que `r load5$feature` son los metabolitos que más contribuyen a explicar la varianza global de los datos. 
+
 
 ```{r,fig.width=6, fig.height=4}
 grafica_pca
 ```
 
-Dado que la separación entre grupos observada en la PCA no era del todo clara, se consideró aplicar un método supervisado para maximizar la separación entre grupos. Primero, se aplicó un análisis univariante mediante el **test de Mann-Whitney** para evaluar cada metabolito individualmente y comprobar si existen diferencias signficativas entre grupos. Se seleccionaron los metabolitos con un p-valor ajustado menor a 0.01, obteniendo un grupo de `r length(rownames(dif_sig)) ` metabolitos con diferencias signficativas entre pacientes control y caquéxicos. 
+Dado que la separación entre grupos observada en la PCA no era del todo clara, se consideró aplicar un método supervisado para maximizar la separación entre grupos. Primero, se aplicó un análisis univariante mediante el **test de Mann-Whitney** para evaluar cada metabolito individualmente y comprobar si existen diferencias significativas entre grupos. Se seleccionaron los metabolitos con un p-valor ajustado menor a 0.01, obteniendo un grupo de `r length(rownames(dif_sig)) ` metabolitos con diferencias significativas entre pacientes control y caquéxicos. 
 
-Se representaron los resultandos mediante un **Volcano plot**, que permite visualizar la magnitud del cambio y la significancia estadística. Dentro de los metabolitos con diferencias signficativas destacaremos Glucosa, Quinolato y Adipato, que presentan concentraciones más bajas en pacientes caquéxicos. 
+Se representaron los resultandos mediante un **Volcano plot**. Dentro de los metabolitos con diferencias significativas destacaremos Glucosa, Quinolato y Adipato, que presentan concentraciones más bajas en pacientes caquéxicos. 
 
 ```{r, fig.width=6, fig.height=4}
 grafica_volcano
 ```
 
-Como ya hemos evaluado cada metabolito por separado, ahora completaremos el análisis aplicando la técnica **sPLS-DA (Partial Least Squares Discriminant Analysis)**, que permite maximizar la separación entre los grupos conocidos. Se construyó el modelo con los metabolitos significativos identificados en el análisis univariante. En el gráfico de factores se aprecia una separación más definida entre los grupos en comparación con la observada en la PCA. Aunque todavía existe solapamiento entre grupos, este es mucho menor, lo que sugiere que estos metabolitos tienen una capacidad discriminativa relevante. 
+Como ya hemos evaluado cada metabolito por separado, ahora completaremos el análisis aplicando la técnica **sPLS-DA (Partial Least Squares Discriminant Analysis)**, que permite maximizar la separación entre los grupos conocidos. Se construyó el modelo con los metabolitos significativos identificados en el análisis univariante. En el gráfico de factores se aprecia una separación más definida entre los grupos en comparación con la observada en la PCA. Aunque todavía existe solapamiento entre grupos, este es mucho menor, lo que sugiere que estos metabolitos tienen una capacidad discriminativa relevante. Los metabolitos `r feat5$feature` son los que mayor capacidad para discriminar entre ambos grupos. 
 
 ```{r, fig.width=6, fig.height=4}
 grafica_pls_factors
 ```
 
-El gráfico de cargas permite identificar qué metabolitos contribuyen en la separación de los grupos. Se puede observar N.N Dimetilglicina, Quinolinato y Leucina son los metabolitos con mayor capacidad discriminativa.  
 
-```{r, fig.width=5, fig.height=3}
-grafica_pls_features
-```
 # 6. Discusión
 
 # 7. Conclusiones
