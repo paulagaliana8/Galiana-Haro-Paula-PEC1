@@ -1,0 +1,81 @@
+---
+title: "Informe PEC1"
+author: "Paula Galiana Haro"
+date: "2025-03-31"
+output: 
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("codigo_PEC1.R")
+```
+
+# 2.  Resumen
+
+
+# 3. Objetivos
+
+# 4. Métodos 
+
+- El dataset utilizado es el `human_cachexia.csv` proviene del repositorio GitHub aportado en la actividad. Recoge información metabolómica de 77 muestras de orina, donde `r table(cachexia$Muscle.loss)[1]` pertenecen a pacientes con caquexia y `r table(cachexia$Muscle.loss)[2]` a pacientes control. Cada muestra contiene valores de concentración de `dim(object)[1]` metabolitos. 
+
+- Se utilizó el paquete POMA Bioconductor para todo el análisis, ya que ofrece un conjunto de herramientas que facilitan el procesamiento y análisis estadístico de datos ómicos, utilizando la clase `SummarizedExperiment`. 
+
+- Se empleó la función `PomaCreateObject()` para construir un objeto de clase `SummarizedExperiment`, que contiene la matriz de los datos (valores de los metabolitos) como los metadatos asociados a las muestras (ID del paciente y grupo al que pertenecen). Esta clase, en comparación con `ExpressionSet`, ofrece una estructura más flexible y moderna, ya que utiliza objetos S4, que tienen una mejor compatibilidad con grandes conjuntos de datos. Además, permite trabajar con más de una matriz de datos simultáneamente, siendo una herramienta muy utilizada en análisis ómicos. Una vez creado el objeto, se guarda con el nombre `cachexia_summarized_experiment.Rda`. Vemos que tiene `r dim(object)[1]` filas, que corresponden a los metabolitos y `r dim(object)[2]` columnas, que corresponden a los pacientes.
+
+- Para el **preprocesamiento** de los datos, primero se aplicó una normalización tipo pareto, utilizando la función `PomaNorm(method = "log_pareto")`. Esta realiza una transformaci
+# 5. Resultados
+
+No se comentará nada del código empleado, únicamente las salidas de los gráficos. En el documento `código-PEC1.R`, se puede consultar el código empleado. En primer lugar, se exploraron los datos crudos mediante un boxplot, observando una alta variabilidad entre metabolitos y presencia de posibles outliers. La asimetría de algunas distribuciones nos indica que algunos datos estan en escalas diferentes.
+
+```{r, fig.width=5, fig.height=3}
+grafica_boxplot
+```
+
+Para igualar la escala de todos los metabolitos y que puedan ser comparables entre sí, se aplicó una transformación logarítmica y un escalado tipo pareto. En el boxplot con los datos normalizados, se puede observar  una distribución de los metabolitos mucho más uniforme, pero vemos posibles outliers que podrían modificar la tendencia general del conjunto de datos.
+
+```{r, fig.width=5, fig.height=3}
+boxplot_norm
+```
+
+
+
+Se realizó un estudio de estos posibles outliers y, aunque en la representación bidimensional no se observan claramente, sí identificaron 3 muestras (`r outliers$sample`) con valores extremos, todas de pacientes caquéxicos. Estas fueron eliminadas del conjunto de datos para evitar desviaciones en análisis posteriores. 
+
+```{r, fig.width=5, fig.height=3}
+grafica_outliers
+```
+
+
+Aunque en el gráfico de outliers ya se intuía cierta separación entre grupos, se aplicó un  **Análisis de Componentes Principales (PCA)** para explorar la estructura global del dataset y observar si las muestras se agrupan dependiendo de si son de pacientes control o caquéxicos. La primera componente principal (PC1) explica el 56% de la variabilidad global del conjunto de datos, lo que indica que existe una fuente dominante de variación. Además, en el plot existe cierta separación entre los grupos, aunque hay un elevado solapamiento entre individuos, por lo que es posible que esta variabilidad esté relacionada con el grupo al que pertenecen los pacientes. 
+
+```{r,fig.width=6, fig.height=4}
+grafica_pca
+```
+
+Dado que la separación entre grupos observada en la PCA no era del todo clara, se consideró aplicar un método supervisado para maximizar la separación entre grupos. Primero, se aplicó un análisis univariante mediante el **test de Mann-Whitney** para evaluar cada metabolito individualmente y comprobar si existen diferencias signficativas entre grupos. Se seleccionaron los metabolitos con un p-valor ajustado menor a 0.01, obteniendo un grupo de `r length(rownames(dif_sig)) ` metabolitos con diferencias signficativas entre pacientes control y caquéxicos. 
+
+Se representaron los resultandos mediante un **Volcano plot**, que permite visualizar la magnitud del cambio y la significancia estadística. Dentro de los metabolitos con diferencias signficativas destacaremos Glucosa, Quinolato y Adipato, que presentan concentraciones más bajas en pacientes caquéxicos. 
+
+```{r, fig.width=6, fig.height=4}
+grafica_volcano
+```
+
+Como ya hemos evaluado cada metabolito por separado, ahora completaremos el análisis aplicando la técnica **sPLS-DA (Partial Least Squares Discriminant Analysis)**, que permite maximizar la separación entre los grupos conocidos. Se construyó el modelo con los metabolitos significativos identificados en el análisis univariante. En el gráfico de factores se aprecia una separación más definida entre los grupos en comparación con la observada en la PCA. Aunque todavía existe solapamiento entre grupos, este es mucho menor, lo que sugiere que estos metabolitos tienen una capacidad discriminativa relevante. 
+
+```{r, fig.width=6, fig.height=4}
+grafica_pls_factors
+```
+
+El gráfico de cargas permite identificar qué metabolitos contribuyen en la separación de los grupos. Se puede observar N.N Dimetilglicina, Quinolinato y Leucina son los metabolitos con mayor capacidad discriminativa.  
+
+```{r, fig.width=5, fig.height=3}
+grafica_pls_features
+```
+# 6. Discusión
+
+# 7. Conclusiones
+
+# 8. Referencias 
