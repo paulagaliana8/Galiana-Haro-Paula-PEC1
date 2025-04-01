@@ -14,7 +14,7 @@ source("codigo-PEC1.R")
 
 # 2.  Resumen
 
-
+En este trabajo se ha realizado un análisis exploratorio de un conjunto de datos metabolómicos compuesto por 77 muestras de orina de pacientes control y caquéxicos. Para ello se ha empleado principalmente el paquete POMA de Bioconductor, trabajando sobre un objeto de clase `SummarizedExperiment`. Tras el preprocesamiento de los datos (normalización y eliminación de outliers),se aplicó un Análisis de Componentes Principales (PCA) que mostró cierta separación entre grupos. También se realizó un análisis univariante (test de Mann-Whitney),identificando múltiples metabolitos con diferencias significativas entre ambos grupos, representados en un Volcano Plot. Finalmente, se utilizó una técnica supervisada, sPLS-DA, para maximizar la separación de los grupos, donde N.N.dimetilgicina, Valina y Quinolato fueron algunos de los metabolitos con mayor capacidad discriminativa entre grupos. Los resultados sugieren que el perfil metabolómico en orina podría emplearse para distinguir a pacientes caquéxicos. 
 
 # 3. Objetivos
 
@@ -29,7 +29,7 @@ El objetivo principal de esta actividad es realizar un proceso de análisis de d
 
 # 4. Métodos 
 
-- El dataset utilizado es el `human_cachexia.csv` proviene del repositorio GitHub aportado en la actividad. Recoge información metabolómica de 77 muestras de orina, donde `r table(cachexia$Muscle.loss)[1]` pertenecen a pacientes con caquexia y `r table(cachexia$Muscle.loss)[2]` a pacientes control. Cada muestra contiene valores de concentración de `dim(object)[1]` metabolitos. 
+- El dataset utilizado es el `human_cachexia.csv` proviene del repositorio GitHub aportado en la actividad. Recoge información metabolómica de 77 muestras de orina, donde `r table(cachexia$Muscle.loss)[1]` pertenecen a pacientes con caquexia y `r table(cachexia$Muscle.loss)[2]` a pacientes control. Cada muestra contiene valores de concentración de `dim(object)[1]` metabolitos.
 
 - Se utilizó el paquete POMA Bioconductor para todo el análisis, ya que ofrece un conjunto de herramientas que facilitan el procesamiento y análisis estadístico de datos ómicos, utilizando la clase `SummarizedExperiment`. 
 
@@ -86,6 +86,7 @@ grafica_pca
 ```
 
 
+
 Dado que la separación entre grupos observada en la PCA no era del todo clara, se consideró aplicar un método supervisado para maximizar la separación entre grupos. Primero, se aplicó un análisis univariante mediante el **test de Mann-Whitney** para evaluar cada metabolito individualmente y comprobar si existen diferencias significativas entre grupos. Se seleccionaron los metabolitos con un p-valor ajustado menor a 0.05, obteniendo un grupo de `r length(rownames(dif_sig)) ` metabolitos con diferencias significativas entre pacientes control y caquéxicos. Observamos que los metabolitos `r head(dif_sig$feature, 5)` son los que presentan las diferencias más significativas entre grupos. 
 
 
@@ -122,8 +123,17 @@ Elevación de quinolinato en orina, un metabolito intermedario en el catabolismo
 
 Es importante considerar algunas limitaciones del estudio. El tamaño muestral es relativamente bajo `r dim(object)[2]` aunque suficiente para un análisis exploratorio de los datos, por lo que se deberían validar los resultados obtenidos con grupos muestrales mayores y más controladas. Se deberían tener en cuenta otros factores que podrían tener un impacto en el perfil metabolómico como la  edad, sexo, si los pacientes presentan cáncer y de qué tipo o algunas variables relacionadas con hábitos (como si es fumador o no). La caquexia es un síndrome multifactorial, por lo que es de vital importancia un análisis completo de todas las variables biológicas posibles. 
 
+Con los resultados obtenidos y la información de otros factores ya comentados, se podrían construir modelos predictivos que permitan clasificar a los pacientes caquéxicos en función de su perfil metabolómico. Estos modelos podrían entrenarse y testarse con muestras de nuevos pacientes, para intentar mejorar la identificación de este grupo de pacientes. 
+
+
 # 7. Conclusiones
 
+A través del análisis exploratorio del conjunto de datos de 77 muestras de orina de pacientes control y caquéxicos, se ha podido identificar perfiles metabolómicos diferentes entre grupos. Mediante el análisis univariante,se detectaron `r length(rownames(dif_sig)) ` metabolitos con diferencias signficativas en pacientes control y caquéxicos y se observó esta separación entre grupos mediante PCA. Utilizando técnicas supervisadas como sPLS-DA, se maximizó la discriminación entre pacientes. 
 
+Los metabolitos N.N.dimetilglicina, Quinolinato y Valina no solo presentan diferencias significativas entre grupos, sino que también tiene una gran capacidad discriminativa, por lo que podrían ser buenos biomarcadores de caquexia en muestras de orina. Los resultados observados en la exploración de los datos están alineados con las alteraciones metabólicas observadas en pacientes con caquexia, como el estado hipercatabólico, aumento de la lipólisis y la respuesta inflamatoria y hormonal alterada.
+
+Aunque los resultados son prometedores, se debería recoger información de otros factores clínicos que podrían afectar al perfil metabolómico, además de aumentar la cohorte para mejorar la robustez estadística del análisis. 
 
 # 8. Referencias 
+
+Este es el enlace al repositorio GitHub, donde encontrareis el código utilizado para abordar el análisis, así como el dataset y el summarizedExperiment: https://github.com/paulagaliana8/Galiana-Haro-Paula-PEC1.git 
