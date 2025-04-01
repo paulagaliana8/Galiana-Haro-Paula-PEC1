@@ -15,8 +15,16 @@ source("codigo-PEC1.R")
 # 2.  Resumen
 
 
+
 # 3. Objetivos
 
+El objetivo principal de esta actividad es realizar un proceso de análisis de datos ómicos sobre un conjunto de datos de metabolómica. Dentro de este, se plantean los siguientes objetivos:
+
+- Seleccionar y preparar un dataset de metabolómica, creando un objeto de clase `SummarizedExperiment` para el análisis de los datos.
+- Realizar un preprocesamiento de los datos, incluyendo normalización y búsqueda de outliers, para garantizar la calidad del dataset previamente a su análisis. 
+- Exploración global del conjunto de datos mediante técnicas multivariantes como el Análisis de Componentes Principales (PCA), buscando posibles agrupaciones entre las muestras y que metabolitos contribuyen más a explicar la variabilidad del dataset.  
+- Análisis univariante de los datos, utilizando tests estadísticos para identificar los metabolitos con diferencias significativas entre grupos de pacientes control y caquéxicos.
+- Aplicar técnicas supervisadas (sPLS-DA) para maximizar la separación entre grupos y detectar los metabolitos que más facilitan la discriminación de los grupos de pacientes. 
 
 
 # 4. Métodos 
@@ -29,7 +37,7 @@ source("codigo-PEC1.R")
 
 - Para el **preprocesamiento** de los datos, primero se aplicó una normalización tipo pareto, utilizando la función `PomaNorm(method = "log_pareto")`. Esta realiza una transformación logarítmica para reducir la asimetría de las distribuciones y un escalado tipo pareto. Este escalado es ampliamente utilizado en estudios metabolómicos y usa la raíz cuadrada de la desviación estándar como factor de escalado, lo que permite homogeneizar la varianza. En segundo lugar, se realizó una detección de outliers utilizando la función PomaOutliers(), para detectar muestras atípicas y poder eliminarlas del conjunto de datos a analizar. 
 
-- Se aplicó un **Análisis de Componentes Principales (PCA)**, una técnica multivariante no supervisada que reduce la dimensionalidad (variables) de nuestro conjunto de datos preservando gran parte de la varianza. Esta técnica nos ayuda a realizar una primera exploración de los datos y poder detectar y observar si existe agrupamiento entre las muestras. Se utilizó la función `PomaPCA()`, especificando únicamente que centre las variables (`center = TRUE`), pues ya se realizó el escalado anteriormente. Si ordenamos los loadings de la PC1 de mayor a menor, podemos seleccionar los 5 metabolitos que más contribuyen a explicar la varianza global del conjunto de datos. 
+- Se aplicó un **Análisis de Componentes Principales (PCA)**, una técnica multivariante no supervisada que reduce la dimensionalidad de nuestro conjunto de datos preservando gran parte de la varianza. Esta técnica nos ayuda a realizar una primera exploración de los datos y poder detectar y observar si existe agrupamiento entre las muestras. Se utilizó la función `PomaPCA()`, especificando únicamente que centre las variables (`center = TRUE`), pues ya se realizó el escalado anteriormente. Si ordenamos los loadings de la PC1 de mayor a menor, podemos seleccionar los 5 metabolitos que más contribuyen a explicar la varianza global del conjunto de datos. 
 
 - Se ejecutó un **análisis univariante** para identificar los metabolitos con diferencias significativas entre ambos grupos de pacientes. Para ello se utilizó la función `PomaUnivariate()`, especificando el test no paramétrico de **Mann-Whitney**. Pese a haber normalizado los datos no hemos estudiado si siguen una distribución normal o no, por lo que me pareció el test más adecuado. 
 
@@ -40,51 +48,82 @@ source("codigo-PEC1.R")
 
 # 5. Resultados
 
-No se comentará nada del código empleado, únicamente las salidas de los gráficos. En el documento `código-PEC1.R`, se puede consultar el código empleado. En primer lugar, se exploraron los datos crudos mediante un boxplot, observando una alta variabilidad entre metabolitos y presencia de posibles outliers. La asimetría de algunas distribuciones nos indica que algunos datos estan en escalas diferentes.
+No se comentará nada a cerca del código, únicamente las salidas de los gráficos. En el documento `código-PEC1.R`, se puede consultar el código empleado. Aquí se muestra el objeto `SummarizedExperiment`, el cual contiene `r dim(object)[1]` filas correspondientes a los metabolitos y `r dim(object)[2]` columnas, que corresponden a las muestras de orina de cada paciente. 
+
+```{r}
+object
+```
+
+En primer lugar, se exploraron los datos crudos mediante un boxplot, observando una alta variabilidad entre metabolitos y presencia de posibles outliers. La asimetría de algunas distribuciones nos indica que algunos datos estan en escalas diferentes.
 
 ```{r, fig.width=5, fig.height=3}
 grafica_boxplot
 ```
 
-Para igualar la escala de todos los metabolitos y que puedan ser comparables entre sí, se aplicó una transformación logarítmica y un escalado tipo pareto. En el boxplot con los datos normalizados, se puede observar  una distribución de los metabolitos mucho más uniforme, pero vemos posibles outliers que podrían modificar la tendencia general del conjunto de datos.
+Para igualar la escala de todos los metabolitos y que puedan ser comparables entre sí, se aplicó una transformación logarítmica y un escalado tipo pareto. En el boxplot con los datos normalizados, se puede observar  una distribución de los metabolitos mucho más uniforme, pero vemos posibles outliers que podrían modificar la tendencia general del conjunto de datos. También se observa que todos los metabolitos presentan valores más elevados en los pacientes caquéxicos que en los control. 
 
 ```{r, fig.width=5, fig.height=3}
 boxplot_norm
 ```
 
-
-
-Se realizó un estudio de estos posibles outliers y, aunque en la representación bidimensional no se observan claramente, sí identificaron 3 muestras (`r outliers$sample`) con valores extremos, todas de pacientes caquéxicos. Estas fueron eliminadas del conjunto de datos para evitar desviaciones en análisis posteriores. 
+Se realizó un estudio de estos posibles outliers donde se identificaron 3 muestras con valores extremos, todas de pacientes caquéxicos. Estas fueron eliminadas del conjunto de datos para evitar desviaciones en análisis posteriores. En la representación bidimensinal observamos una gran dispersión de los puntos de cada grupo, lo que nos puede indicar una elevada heterogeneidad de valores, probablemente asociado a la naturaleza de la muestra. 
 
 ```{r, fig.width=5, fig.height=3}
 grafica_outliers
 ```
 
+```{r, fig.width=5, fig.height=3}
+#Estos son los 3 outliers 
+outliers
+```
 
-Aunque en el gráfico de outliers ya se intuía cierta separación entre grupos, se aplicó un  **Análisis de Componentes Principales (PCA)** para explorar la estructura global del dataset y observar si las muestras se agrupan dependiendo de si son de pacientes control o caquéxicos. La primera componente principal (PC1) explica el 56% de la variabilidad global del conjunto de datos, lo que indica que existe una fuente dominante de variación. Además, en el plot existe cierta separación entre los grupos, aunque hay un elevado solapamiento entre individuos, por lo que es posible que esta variabilidad esté relacionada con el grupo al que pertenecen los pacientes. Vemos que `r load5$feature` son los metabolitos que más contribuyen a explicar la varianza global de los datos. 
+Aunque en el gráfico de outliers ya se intuía cierta separación entre grupos, se aplicó un  **Análisis de Componentes Principales (PCA)** para explorar la estructura global del dataset y observar si las muestras se agrupan dependiendo de si son de pacientes control o caquéxicos. 
 
+La primera componente principal (PC1) explica el 56% de la variabilidad global del conjunto de datos, lo que indica que existe una fuente dominante de variación. Además, en el plot existe cierta separación entre los grupos, aunque hay un elevado solapamiento entre individuos. Esto puede deberse a que existen otros factores que explican la variabilidad de global del dataset o que hay mucho ruido debido al tipo de muestra con el que estamo trabajando. Si ordenamos los datos de las cargas de mayor a menor, observamos que `r load5$feature` son los metabolitos que más contribuyen a explicar la varianza global de los datos. 
 
-```{r,fig.width=6, fig.height=4}
+```{r,fig.width=5, fig.height=3}
 grafica_pca
 ```
 
-Dado que la separación entre grupos observada en la PCA no era del todo clara, se consideró aplicar un método supervisado para maximizar la separación entre grupos. Primero, se aplicó un análisis univariante mediante el **test de Mann-Whitney** para evaluar cada metabolito individualmente y comprobar si existen diferencias significativas entre grupos. Se seleccionaron los metabolitos con un p-valor ajustado menor a 0.01, obteniendo un grupo de `r length(rownames(dif_sig)) ` metabolitos con diferencias significativas entre pacientes control y caquéxicos. 
 
-Se representaron los resultandos mediante un **Volcano plot**. Dentro de los metabolitos con diferencias significativas destacaremos Glucosa, Quinolato y Adipato, que presentan concentraciones más bajas en pacientes caquéxicos. 
+Dado que la separación entre grupos observada en la PCA no era del todo clara, se consideró aplicar un método supervisado para maximizar la separación entre grupos. Primero, se aplicó un análisis univariante mediante el **test de Mann-Whitney** para evaluar cada metabolito individualmente y comprobar si existen diferencias significativas entre grupos. Se seleccionaron los metabolitos con un p-valor ajustado menor a 0.05, obteniendo un grupo de `r length(rownames(dif_sig)) ` metabolitos con diferencias significativas entre pacientes control y caquéxicos. Observamos que los metabolitos `r head(dif_sig$feature, 5)` son los que presentan las diferencias más significativas entre grupos. 
+
+
+Se representaron los resultandos mediante un **Volcano plot**. Vemos que todos los metabolitos tienen un log2 fold change negativo, lo que confirma lo que habíamos observado en los boxplots anteriores: los metabolitos se encuentran a concentraciones mayores en caquéxicos que en pacientes control. El cálculo del fold_change se realiza dividiendo el segundo grupo (control) / el de referencia (caquéxicos), por eso observamos valores negativos. Los metabolitos por encima del eje Y nos indican qu tienen un p-valor < 0,05 y que son significativos. Cuanto más altos, menor p-valor presentan y por tanto, mayor signficancia estadística. 
 
 ```{r, fig.width=6, fig.height=4}
 grafica_volcano
 ```
 
-Como ya hemos evaluado cada metabolito por separado, ahora completaremos el análisis aplicando la técnica **sPLS-DA (Partial Least Squares Discriminant Analysis)**, que permite maximizar la separación entre los grupos conocidos. Se construyó el modelo con los metabolitos significativos identificados en el análisis univariante. En el gráfico de factores se aprecia una separación más definida entre los grupos en comparación con la observada en la PCA. Aunque todavía existe solapamiento entre grupos, este es mucho menor, lo que sugiere que estos metabolitos tienen una capacidad discriminativa relevante. Los metabolitos `r feat5$feature` son los que mayor capacidad para discriminar entre ambos grupos. 
 
-```{r, fig.width=6, fig.height=4}
+Como ya hemos evaluado cada metabolito por separado, ahora completaremos el análisis aplicando la técnica **sPLS-DA (Partial Least Squares Discriminant Analysis)**, que permite maximizar la separación entre los grupos conocidos. Se construyó el modelo con los metabolitos significativos identificados en el análisis univariante. En el gráfico de factores se aprecia una separación más definida entre los grupos en comparación con la observada en la PCA. Aunque todavía existe solapamiento entre grupos, este es mucho menor,por lo que hemos conseguido maximizar la separación de los grupos. Los metabolitos `r feat5$feature` son los que mayor capacidad para discriminar entre ambos grupos presentan. 
+
+```{r, fig.width=5, fig.height=3}
 grafica_pls_factors
 ```
 
 
 # 6. Discusión
 
+La caquexia es un síndrome metabólico complejo asociado con una enfermedad subyacente, como puede ser el cáncer,y que está caracterizado por pérdida de masa muscular con o sin pérdida de masa grasa. Existe una escasez de datos sobre alteraciones globales del metaboloma en pacientes caquéxicos, por lo que la caracterización de perfiles metabolómicos puede resultar muy útil para comprender las vías metabólicas desreguladas en este síndrome. También podría servir para identificar biomarcadores diferenciales, que ayudarían a realizar un diagnóstico precoz y una terapia más dirigida y efectiva. 
+
+A lo largo del análisis se identificaron diferencias en los perfiles metabolómicos de los pacientes control y caquéxicos. A pesar de que en la PCA se observó solapamiento entre ambos grupos, sí se observaron dos agrupaciones claras, además de que entre la PC1 y PC2 se explica hasta un 60% de la varianza total, siendo  `r load5$feature` los que más contribuyen. 
+
+El análisis univariante mostró que `r length(rownames(dif_sig)) ` metabolitos presentan diferencias signficativas entre grupos, lo que nos confirma que existen perfiles metabolómicos diferentes entre pacientes caquéxicos y control. Tanto en los boxplots exploratorios como en el Volcano plot, se puede observar que los metabolitos presentan una concentración más elevada en pacientes caquéxicos que en pacientes control, siendo `r head(dif_sig$feature, 5)` los que presentan diferencias más significativas.
+
+Mediante el análisis supervisado se consiguió maximizar la discriminación entre grupos, donde se observó que 
+`r feat5$feature` son los metabolitos con mayor poder discriminativo. 
+
+Antes de analizar los resultados es importante remarcar que trabajamos con muestras de orina, donde se recogen los productos finales de las diferentes vías metabólicas y por tanto, alteraciones en su concentración nos puede dar información relevante acerca del los cambios de estas rutas metabólicas. La concentración de estos metabolitos también puede variar entre individuos del mismo grupo dependiendo de la dieta, estado de hidratación o ingesta de medicamentos, cosa que explica la enorme variabilidad que hemos observado en los datos y la importancia de normalizarlos y quitar los valores atípicos. 
+
+Los resultados obtenidos concuerdan con los mecanismos fisiopatológicos de los pacientes caquéxicos descritos en la literatura. La presencia de elevadas concentraciones de aminoácidos en orina (como Valina, Alanina o Glutamina) podría explicarse por el estado hipercatabólico en el que se encuentran estos pacientes, donde hay pérdida de proteínas musculares entre otras patologías. De forma similar, altas concentraciones de adipato en orina pueden reflejar la activación de la lipólisis del tejido adiposo. 
+
+Elevación de quinolinato en orina, un metabolito intermedario en el catabolismo del triptófano asociado a respuestas inflamatorias y neurotoxicidad, nos podría indicar alteraciones de la respuesta inflamatoria y hormonal. Por último, N.N-Dimetilglicina está relacionada con el metabolismo de la colina, podría actuar como un marcador de estrés oxidativo, pues son alteraciones frecuentes en cáncer. 
+
+Es importante considerar algunas limitaciones del estudio. El tamaño muestral es relativamente bajo `r dim(object)[2]` aunque suficiente para un análisis exploratorio de los datos, por lo que se deberían validar los resultados obtenidos con grupos muestrales mayores y más controladas. Se deberían tener en cuenta otros factores que podrían tener un impacto en el perfil metabolómico como la  edad, sexo, si los pacientes presentan cáncer y de qué tipo o algunas variables relacionadas con hábitos (como si es fumador o no). La caquexia es un síndrome multifactorial, por lo que es de vital importancia un análisis completo de todas las variables biológicas posibles. 
+
 # 7. Conclusiones
+
+
 
 # 8. Referencias 
