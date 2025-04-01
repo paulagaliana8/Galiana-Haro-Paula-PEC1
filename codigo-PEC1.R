@@ -50,7 +50,6 @@ outliers<-poma_outliers$outliers
 #guardamos el conjunto de datos limpio para trabajar con el 
 poma_processed<-poma_outliers$data
 
-
 ## ----include = FALSE------------------------------------------------------------------------------------------------------
 #pca de los datos procesados, sin escalar (tiene escalado pareto)
 #centramos los datos, pero no escalamos 
@@ -76,8 +75,8 @@ datos_sig<-poma_processed[dif_sig$feature,]
 
 ## -------------------------------------------------------------------------------------------------------------------------
 #Volcano plot para observar las diferencias individuales 
-grafica_volcano<-poma_univariate %>% select(feature, fold_change,pvalue) %>%
-  PomaVolcano (pval_cutoff = 0.05, labels = TRUE)
+grafica_volcano<-poma_univariate %>% select(feature, fold_change,adj_pvalue) %>%
+ PomaVolcano (pval_cutoff = 0.05, labels = TRUE)
 
 ## -------------------------------------------------------------------------------------------------------------------------
 #sPLSA-DA para intentar maximizar la separación de los grupos 
